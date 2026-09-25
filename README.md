@@ -28,9 +28,20 @@ python -m unittest discover -s tests -v
 - `POST /api/batches/{id}/items`、`POST /api/batches/{id}/assign`
 - `POST /api/annotations`、`POST /api/adjudications`
 - `GET /api/items/{id}?user_id=`
-- `GET /api/batches/{id}/disagreements`
-- `GET /api/batches/{id}/consistency`
+- `GET /api/batches/{id}/disagreements`、`GET /api/batches/{id}/consistency`、`GET /api/batches/{id}/summary`
+- `POST /api/batches/{id}/revisions/submit`、`POST /api/batches/{id}/revisions/{rid}/activate`
 - `POST /api/batches/{id}/freeze`
 - `GET /api/batches/{id}/gold`
 
 一致性同时返回逐条成对一致率和 Fleiss Kappa。冻结要求每条至少有两人标注、没有未仲裁分歧；冻结后不能修改标注，导出结果来自不可变的 `gold_records`。
+
+## 指南换版
+
+每个批次最多挂一份“待启用指南”：
+
+- `POST /api/batches/{id}/revisions/submit`：管理员登记一份待启用指南（可用已存在的 `guideline_id`，或直接给 `version`+`rules` 新建），必须填 `note` 换版说明，记录登记时刻。待启用期间，标注提交与争议仲裁继续按批次当前（旧）版本判定，各自带 `guideline_id`。
+- `POST /api/batches/{id}/revisions/{rid}/activate`：记录启用时刻与操作人，并把批次切到新版：已有旧版标注的分配回到 `review`（待复核，需按新版重新提交）；旧版仲裁记录保留但不再计入分歧与冻结判定；尚未提交的条目不受影响，提交时直接按新版。
+- 冻结批次拒绝登记与启用换版，保持原结论；冻结金标准的导出在批次级和逐条记录上都写明 `guideline_id` / `guideline_version` 与 `source`（`consensus` 或 `adjudication`）。
+- `GET /api/batches/{id}/summary` 返回待处理数量（待提交/待复核、其中待复核、待仲裁、已提交）以及完整的换版前后记录（版本号、说明、登记/启用时刻与操作人）；`/api/state` 中每个批次也带这些计数与待启用指南。
+
+复核者重新打开条目时，页面展示新版指南，并把其上一版答案作为 `prior_annotation`（含旧版版本号）供参考；在按新版提交自己的标注前，讨论区含答案内容仍不可见。

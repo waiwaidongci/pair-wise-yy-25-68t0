@@ -59,6 +59,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, self.db.consistency(int(parts[2])))
             if len(parts) == 4 and parts[:2] == ["api", "batches"] and parts[3] == "gold":
                 return self._json(200, self.db.export_gold(int(parts[2])))
+            if len(parts) == 4 and parts[:2] == ["api", "batches"] and parts[3] == "summary":
+                return self._json(200, self.db.batch_summary(int(parts[2])))
             self._json(404, {"ok": False, "error": "接口不存在"})
         except (DomainError, ValueError) as exc:
             self._json(400, {"ok": False, "error": str(exc)})
@@ -85,6 +87,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(201, {"ok": True, "id": self.db.add_discussion(int(body.get("item_id", 0)), int(body.get("author_id", 0)), str(body.get("body", "")), bool(body.get("contains_answer", False)))})
             if len(parts) == 4 and parts[:2] == ["api", "batches"] and parts[3] == "freeze":
                 return self._json(200, {"ok": True, **self.db.freeze_batch(int(parts[2]), int(body.get("manager_id", 0)))})
+            if len(parts) == 5 and parts[:2] == ["api", "batches"] and parts[3] == "revisions":
+                if parts[4] == "submit":
+                    revision_id = self.db.submit_revision(
+                        int(parts[2]), int(body.get("manager_id", 0)), str(body.get("note", "")),
+                        int(body["guideline_id"]) if body.get("guideline_id") else None,
+                        str(body.get("version", "")), str(body.get("rules", "")),
+                    )
+                    return self._json(201, {"ok": True, "id": revision_id})
+            if (len(parts) == 6 and parts[:2] == ["api", "batches"]
+                    and parts[3] == "revisions" and parts[5] == "activate"):
+                result = self.db.activate_revision(
+                    int(parts[2]), int(parts[4]), int(body.get("manager_id", 0))
+                )
+                return self._json(200, {"ok": True, **result})
             self._json(404, {"ok": False, "error": "接口不存在"})
         except (DomainError, ValueError) as exc:
             self._json(400, {"ok": False, "error": str(exc)})
