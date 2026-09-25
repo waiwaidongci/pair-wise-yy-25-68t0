@@ -32,5 +32,11 @@ python -m unittest discover -s tests -v
 - `GET /api/batches/{id}/consistency`
 - `POST /api/batches/{id}/freeze`
 - `GET /api/batches/{id}/gold`
+- `POST /api/batches/{id}/guideline-changes`、`POST /api/guideline-changes/{id}/activate`
+- `GET /api/batches/{id}/guideline`
 
-一致性同时返回逐条成对一致率和 Fleiss Kappa。冻结要求每条至少有两人标注、没有未仲裁分歧；冻结后不能修改标注，导出结果来自不可变的 `gold_records`。
+一致性同时返回逐条成对一致率和 Fleiss Kappa。冻结要求每条至少有两人标注、没有未仲裁分歧；冻结后不能修改标注，导出结果来自不可变的 `gold_records`，并写明每条记录判定所用的指南版本与来源（一致通过或仲裁）。
+
+## 指南换版
+
+批次转入标注后仍可换版：管理员用 `POST /api/batches/{id}/guideline-changes` 提交一份待启用指南（每批次同时最多一份，登记说明），启用前提交与仲裁继续按旧版判定。`POST /api/guideline-changes/{id}/activate` 启用后：旧版标注回到待复核（任务重新打开）、旧仲裁不再计入、未提交条目直接按新版标注；冻结批次保持原结论，不能换版。`GET /api/batches/{id}/guideline` 返回当前指南、待启用申请、换版历史与待处理数量（待复核/未提交），页面“指南换版”区可直接操作。
